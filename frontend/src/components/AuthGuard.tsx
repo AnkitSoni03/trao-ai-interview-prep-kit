@@ -14,7 +14,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (user === undefined) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8 text-sm text-neutral-500" role="status">
+      <div className="flex flex-1 items-center justify-center gap-2.5 p-8 text-sm text-muted" role="status">
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border-strong border-t-accent" />
         Checking your session…
       </div>
     );

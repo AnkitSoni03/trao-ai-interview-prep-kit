@@ -1,5 +1,6 @@
 import type { Flashcard, Kit } from "@/lib/types";
 import { markEdited, nextId } from "@/lib/kitEdits";
+import { IconPlus, IconTrash } from "./icons";
 
 export function FlashcardsBoard({
   kit,
@@ -24,42 +25,47 @@ export function FlashcardsBoard({
   }
 
   return (
-    <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <h2 className="mb-3 font-semibold">Flashcards ({kit.flashcards.length})</h2>
+    <section className="card p-5 sm:p-6">
+      <div className="mb-4">
+        <p className="kicker mb-1">Flashcards</p>
+        <h2 className="font-semibold tracking-tight">{kit.flashcards.length} cards</h2>
+      </div>
 
       {kit.flashcards.length === 0 ? (
-        <p className="mb-3 text-sm text-neutral-500">No flashcards yet.</p>
+        <p className="mb-4 rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+          No flashcards yet.
+        </p>
       ) : (
-        <ul className="mb-3 grid gap-2 sm:grid-cols-2">
+        <ul className="mb-4 grid gap-3 sm:grid-cols-2">
           {kit.flashcards.map((f) => (
-            <li key={f.id} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs text-neutral-500">{f.origin}</span>
+            <li key={f.id} className="card p-4">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="rounded-full bg-background px-2 py-0.5 text-xs capitalize text-muted">{f.origin}</span>
                 <button
                   type="button"
                   aria-label="Delete flashcard"
                   onClick={() => onStructuralEdit((k) => ({ ...k, flashcards: k.flashcards.filter((c) => c.id !== f.id) }))}
-                  className="rounded-md border border-neutral-300 px-2 py-0.5 text-xs hover:bg-red-50 hover:text-red-700 dark:border-neutral-700 dark:hover:bg-red-950"
+                  className="btn btn-danger-ghost btn-sm px-2"
                 >
-                  Delete
+                  <IconTrash className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <label className="flex flex-col gap-1 text-xs">
-                Front
+              <label className="flex flex-col gap-1.5">
+                <span className="label">Front</span>
                 <textarea
                   rows={2}
                   value={f.front}
                   onChange={(e) => updateCard(f.id, { front: e.target.value })}
-                  className="rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                  className="field px-2.5 py-2 text-sm"
                 />
               </label>
-              <label className="mt-2 flex flex-col gap-1 text-xs">
-                Back
+              <label className="mt-3 flex flex-col gap-1.5">
+                <span className="label">Back</span>
                 <textarea
                   rows={3}
                   value={f.back}
                   onChange={(e) => updateCard(f.id, { back: e.target.value })}
-                  className="rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                  className="field px-2.5 py-2 text-sm"
                 />
               </label>
             </li>
@@ -67,12 +73,9 @@ export function FlashcardsBoard({
         </ul>
       )}
 
-      <button
-        type="button"
-        onClick={addCard}
-        className="rounded-md border border-dashed border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
-      >
-        + Add flashcard
+      <button type="button" onClick={addCard} className="btn btn-secondary w-full border-dashed">
+        <IconPlus className="h-4 w-4" />
+        Add flashcard
       </button>
     </section>
   );

@@ -6,13 +6,15 @@ import { useParams } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { api, ApiError } from "@/lib/api";
 import type { Confidence, Kit, KitRecord } from "@/lib/types";
+import { IconAlert, IconArrowRight, IconSpark } from "@/components/icons";
 
 const CONFIDENCE_LABEL: Record<Confidence, string> = { 1: "Low", 2: "Medium", 3: "High" };
-const CONFIDENCE_COLOR: Record<Confidence, string> = {
-  1: "bg-red-600 hover:bg-red-700",
-  2: "bg-amber-500 hover:bg-amber-600",
-  3: "bg-green-600 hover:bg-green-700",
+const CONFIDENCE_BTN: Record<Confidence, string> = {
+  1: "bg-danger text-white hover:opacity-90",
+  2: "bg-warning text-white hover:opacity-90",
+  3: "bg-success text-white hover:opacity-90",
 };
+const CONFIDENCE_BAR: Record<number, string> = { 0: "bg-border-strong", 1: "bg-danger", 2: "bg-warning", 3: "bg-success" };
 
 function WeakSpots({ kit }: { kit: Kit }) {
   const practice = kit.practice ?? {};
@@ -30,18 +32,29 @@ function WeakSpots({ kit }: { kit: Kit }) {
   if (rows.length === 0) return null;
 
   return (
-    <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <h2 className="mb-1 font-semibold">Weak spots</h2>
-      <p className="mb-3 text-xs text-neutral-500">
+    <section className="card p-5 sm:p-6">
+      <div className="mb-1 flex items-center gap-1.5">
+        <IconSpark className="h-4 w-4 text-accent" />
+        <h2 className="font-semibold tracking-tight">Weak spots</h2>
+      </div>
+      <p className="mb-4 text-xs text-muted">
         Requirements ranked by your lowest confidence first — review these before anything else.
       </p>
-      <ul className="flex flex-col gap-1.5 text-sm">
+      <ul className="flex flex-col gap-3 text-sm">
         {rows.map(({ req, avg, reviewed, total }) => (
-          <li key={req.id} className="flex items-center justify-between gap-3">
-            <span className="truncate">{req.text}</span>
-            <span className="shrink-0 text-xs text-neutral-500">
-              {avg === null ? "not reviewed" : `avg ${avg.toFixed(1)}/3`} · {reviewed}/{total} card{total === 1 ? "" : "s"}
-            </span>
+          <li key={req.id}>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="truncate">{req.text}</span>
+              <span className="shrink-0 text-xs text-muted">
+                {avg === null ? "not reviewed" : `${avg.toFixed(1)}/3`} · {reviewed}/{total}
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-background">
+              <div
+                className={`h-full rounded-full transition-all ${CONFIDENCE_BAR[Math.round(avg ?? 0)]}`}
+                style={{ width: avg === null ? "6%" : `${(avg / 3) * 100}%` }}
+              />
+            </div>
           </li>
         ))}
       </ul>
@@ -80,55 +93,65 @@ function PracticeSession({ id, kit: initialKit }: { id: string; kit: Kit }) {
   }
 
   if (kit.flashcards.length === 0) {
-    return <p className="text-sm text-neutral-500">This kit has no flashcards yet.</p>;
+    return (
+      <div className="card flex flex-col items-center gap-2 border-dashed px-6 py-10 text-center">
+        <p className="text-sm text-muted">This kit has no flashcards yet.</p>
+      </div>
+    );
   }
 
   const sessionDone = index >= sessionOrder.length;
+  const progressPct = Math.round((Math.min(index, sessionOrder.length) / sessionOrder.length) * 100);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between text-sm text-neutral-500">
-        <span>
-          {reviewedCount} of {kit.flashcards.length} flashcards covered
-        </span>
-        <span>
-          Card {Math.min(index + 1, sessionOrder.length)} of {sessionOrder.length}
-        </span>
+      <div>
+        <div className="mb-2 flex items-center justify-between text-sm text-muted">
+          <span>
+            {reviewedCount} of {kit.flashcards.length} flashcards covered
+          </span>
+          <span>
+            Card {Math.min(index + 1, sessionOrder.length)} of {sessionOrder.length}
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-background">
+          <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${progressPct}%` }} />
+        </div>
       </div>
 
       {sessionDone || !card ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 p-10 text-center dark:border-neutral-800">
-          <p className="font-medium">Session complete 🎉</p>
+        <div className="card-raised flex flex-col items-center gap-4 px-10 py-14 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-success-soft text-success">
+            <IconSpark className="h-5 w-5" />
+          </span>
+          <p className="font-semibold tracking-tight">Session complete</p>
           <button
             type="button"
             onClick={() => {
               setIndex(0);
               setRevealed(false);
             }}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900"
+            className="btn btn-primary"
           >
             Go again
+            <IconArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-6 rounded-lg border border-neutral-200 p-10 text-center dark:border-neutral-800">
-          <p className="max-w-lg text-lg">{card.front}</p>
+        <div className="card-raised flex min-h-[20rem] flex-col items-center justify-center gap-7 px-10 py-12 text-center">
+          <p className="max-w-lg text-lg font-medium tracking-tight">{card.front}</p>
           {revealed && (
-            <p className="max-w-lg whitespace-pre-wrap text-left text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="max-w-lg whitespace-pre-wrap rounded-lg bg-background px-4 py-3 text-left text-sm leading-relaxed text-muted">
               {card.back}
             </p>
           )}
           {!revealed ? (
-            <button
-              type="button"
-              onClick={() => setRevealed(true)}
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900"
-            >
+            <button type="button" onClick={() => setRevealed(true)} className="btn btn-primary">
               Show answer
             </button>
           ) : (
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-xs text-neutral-500">How confident did you feel?</p>
+            <div className="flex flex-col items-center gap-2.5">
+              <p className="label">How confident did you feel?</p>
               <div className="flex gap-2">
                 {([1, 2, 3] as Confidence[]).map((c) => (
                   <button
@@ -136,7 +159,7 @@ function PracticeSession({ id, kit: initialKit }: { id: string; kit: Kit }) {
                     type="button"
                     disabled={submitting}
                     onClick={() => handleRate(c)}
-                    className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${CONFIDENCE_COLOR[c]}`}
+                    className={`btn disabled:opacity-50 ${CONFIDENCE_BTN[c]}`}
                   >
                     {CONFIDENCE_LABEL[c]}
                   </button>
@@ -166,16 +189,29 @@ function PracticePageInner() {
   }, [id]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Practice</h1>
-        <Link href={`/kits/${id}`} className="text-sm underline underline-offset-2">
+        <div>
+          <p className="kicker mb-1">Practice mode</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Flashcards</h1>
+        </div>
+        <Link href={`/kits/${id}`} className="btn btn-secondary btn-sm">
           Back to builder
         </Link>
       </div>
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      {!record && !error && <p className="text-sm text-neutral-500">Loading…</p>}
-      {record && !record.kit && <p className="text-sm text-neutral-500">This kit isn&apos;t ready yet.</p>}
+      {error && (
+        <p className="flex items-center gap-1.5 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+          <IconAlert className="h-3.5 w-3.5 shrink-0" />
+          {error}
+        </p>
+      )}
+      {!record && !error && (
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted" role="status">
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border-strong border-t-accent" />
+          Loading…
+        </div>
+      )}
+      {record && !record.kit && <p className="text-sm text-muted">This kit isn&apos;t ready yet.</p>}
       {record?.kit && <PracticeSession id={id} kit={record.kit} />}
     </div>
   );

@@ -33,19 +33,29 @@ function Dashboard() {
   }, [kits, load]);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <div>
-        <h1 className="text-xl font-semibold">Your kits</h1>
-        <p className="text-sm text-neutral-500">Signed in as {user?.email}</p>
+        <p className="kicker mb-1.5">Dashboard</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Your kits</h1>
+        <p className="mt-1 text-sm text-muted">Signed in as {user?.email}</p>
       </div>
 
       <CreateKitForm onCreated={load} />
 
       <div>
-        <h2 className="mb-3 text-sm font-medium text-neutral-500">All kits</h2>
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="label">All kits</h2>
+          {kits && kits.length > 0 && <span className="text-xs text-muted">{kits.length} total</span>}
+        </div>
+        {error && (
+          <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
+        )}
         {kits === null && !error ? (
-          <p className="text-sm text-neutral-500">Loading…</p>
+          <div className="flex flex-col gap-2">
+            {[0, 1].map((i) => (
+              <div key={i} className="card h-[70px] animate-pulse" />
+            ))}
+          </div>
         ) : (
           <KitList kits={kits ?? []} onChange={load} />
         )}

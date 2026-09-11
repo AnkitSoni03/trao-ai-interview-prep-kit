@@ -14,25 +14,25 @@ import { ScheduleView } from "@/components/ScheduleView";
 import { api, ApiError } from "@/lib/api";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import type { Kit, KitRecord, QuestionCategory } from "@/lib/types";
+import { IconAlert, IconArrowRight, IconRefresh } from "@/components/icons";
 
 function FailedView({ record, onRetry, retrying }: { record: KitRecord; onRetry: () => void; retrying: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-lg border border-red-200 bg-red-50 p-10 text-center dark:border-red-900 dark:bg-red-950">
-      <p className="font-medium text-red-800 dark:text-red-300">Generation failed</p>
-      <p className="max-w-md text-sm text-red-700 dark:text-red-400">
-        {record.error?.message ?? "Something went wrong while generating this kit."}
-      </p>
+    <div className="card-raised flex flex-col items-center gap-4 border-danger/30 bg-danger-soft p-10 text-center">
+      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-danger/15 text-danger">
+        <IconAlert className="h-5 w-5" />
+      </span>
+      <div>
+        <p className="font-semibold text-danger">Generation failed</p>
+        <p className="mt-1 max-w-md text-sm text-danger/90">
+          {record.error?.message ?? "Something went wrong while generating this kit."}
+        </p>
+      </div>
       {record.error?.code && (
-        <code className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 dark:bg-red-900 dark:text-red-300">
-          {record.error.code}
-        </code>
+        <code className="rounded-md bg-danger/10 px-2 py-1 text-xs text-danger">{record.error.code}</code>
       )}
-      <button
-        type="button"
-        onClick={onRetry}
-        disabled={retrying}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
-      >
+      <button type="button" onClick={onRetry} disabled={retrying} className="btn btn-primary mt-1">
+        <IconRefresh className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} />
         {retrying ? "Retrying…" : "Try again"}
       </button>
     </div>
@@ -96,31 +96,38 @@ function Builder({ id, record }: { id: string; record: KitRecord }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">{kit.role.title || "Untitled role"}</h1>
-          <p className="text-sm text-neutral-500">
-            {kit.source.company} ·{" "}
-            <a href={kit.source.company_url} target="_blank" rel="noreferrer" className="underline">
-              {kit.source.company_url}
-            </a>
-          </p>
+          <p className="kicker mb-1">{kit.source.company || "Kit"}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{kit.role.title || "Untitled role"}</h1>
+          <a
+            href={kit.source.company_url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-block text-sm text-muted hover:text-accent hover:underline"
+          >
+            {kit.source.company_url}
+          </a>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-neutral-400" aria-live="polite">
+          <span className="flex items-center gap-1.5 text-xs text-muted" aria-live="polite">
+            <span className={`h-1.5 w-1.5 rounded-full ${saving ? "animate-pulse bg-warning" : "bg-success"}`} />
             {saving ? "Saving…" : "Saved"}
           </span>
-          <Link
-            href={`/kits/${id}/practice`}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900"
-          >
+          <Link href={`/kits/${id}/practice`} className="btn btn-primary">
             Practice
+            <IconArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>
 
-      {saveError && <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>}
+      {saveError && (
+        <p className="flex items-center gap-1.5 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+          <IconAlert className="h-3.5 w-3.5 shrink-0" />
+          {saveError}
+        </p>
+      )}
 
       <CoverageBanner kit={kit} />
       <CompanyBriefCard
@@ -190,8 +197,8 @@ function KitPageInner() {
   if (notFound) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <p>This kit doesn&apos;t exist, or isn&apos;t yours.</p>
-        <button type="button" onClick={() => router.push("/")} className="underline">
+        <p className="text-sm text-muted">This kit doesn&apos;t exist, or isn&apos;t yours.</p>
+        <button type="button" onClick={() => router.push("/")} className="btn btn-secondary">
           Back to your kits
         </button>
       </div>
@@ -199,7 +206,12 @@ function KitPageInner() {
   }
 
   if (!record) {
-    return <p className="py-16 text-center text-sm text-neutral-500">Loading…</p>;
+    return (
+      <div className="flex flex-1 items-center justify-center gap-2.5 py-16 text-sm text-muted" role="status">
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border-strong border-t-accent" />
+        Loading…
+      </div>
+    );
   }
 
   if (record.status === "failed") {

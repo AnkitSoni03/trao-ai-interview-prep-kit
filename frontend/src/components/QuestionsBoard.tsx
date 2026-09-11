@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Kit, Question, QuestionCategory } from "@/lib/types";
 import { markEdited, nextId } from "@/lib/kitEdits";
+import { IconChevronDown, IconChevronUp, IconPin, IconPlus, IconRefresh, IconTrash } from "./icons";
 
 const CATEGORIES: { key: QuestionCategory; label: string }[] = [
   { key: "technical", label: "Technical" },
@@ -10,6 +11,8 @@ const CATEGORIES: { key: QuestionCategory; label: string }[] = [
   { key: "system-design", label: "System design" },
   { key: "company-fit", label: "Company fit" },
 ];
+
+const DIFFICULTY_LABEL: Record<1 | 2 | 3, string> = { 1: "Easy", 2: "Medium", 3: "Hard" };
 
 function moveWithinCategory(questions: Question[], id: string, direction: "up" | "down"): Question[] {
   const target = questions.find((q) => q.id === id);
@@ -53,26 +56,28 @@ function QuestionCard({
   }
 
   return (
-    <li className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-neutral-500">
-          <span className="rounded-full bg-neutral-100 px-1.5 py-0.5 dark:bg-neutral-800">
-            Difficulty
+    <li className="card p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <label className="flex items-center gap-1 rounded-full bg-background px-2 py-1 text-xs text-muted">
             <select
               value={question.difficulty}
               onChange={(e) => updateQuestion({ difficulty: Number(e.target.value) as 1 | 2 | 3 })}
-              className="ml-1 bg-transparent"
+              aria-label="Difficulty"
+              className="bg-transparent font-medium text-foreground outline-none"
             >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-              <option value={3}>3</option>
+              {([1, 2, 3] as const).map((d) => (
+                <option key={d} value={d}>
+                  {DIFFICULTY_LABEL[d]}
+                </option>
+              ))}
             </select>
-          </span>
+          </label>
           <select
             value={question.category}
             onChange={(e) => updateQuestion({ category: e.target.value as QuestionCategory })}
             aria-label="Move to category"
-            className="rounded-full bg-neutral-100 px-1.5 py-0.5 dark:bg-neutral-800"
+            className="rounded-full bg-accent-soft px-2 py-1 text-xs font-medium text-accent outline-none"
           >
             {CATEGORIES.map((c) => (
               <option key={c.key} value={c.key}>
@@ -80,67 +85,70 @@ function QuestionCard({
               </option>
             ))}
           </select>
-          {requirementText.length > 0 && <span className="truncate">covers: {requirementText.join(", ")}</span>}
-          {question.origin && <span className="italic">{question.origin}</span>}
+          {question.origin && (
+            <span className="rounded-full bg-background px-2 py-1 text-xs capitalize text-muted">{question.origin}</span>
+          )}
+          {requirementText.length > 0 && (
+            <span className="max-w-[16rem] truncate text-xs text-muted" title={requirementText.join(", ")}>
+              covers: {requirementText.join(", ")}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
-            aria-label="Pin (protect from regeneration)"
+            aria-label={question.pinned ? "Unpin" : "Pin (protect from regeneration)"}
             onClick={() => updateQuestion({ pinned: !question.pinned })}
-            className={`rounded-md border px-2 py-1 text-xs ${
-              question.pinned
-                ? "border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                : "border-neutral-300 dark:border-neutral-700"
-            }`}
+            className={`btn btn-sm ${question.pinned ? "border border-warning bg-warning-soft text-warning" : "btn-ghost border border-border"}`}
           >
-            {question.pinned ? "Pinned" : "Pin"}
+            <IconPin className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{question.pinned ? "Pinned" : "Pin"}</span>
           </button>
           <button
             type="button"
             aria-label="Move up"
             disabled={!canMoveUp}
             onClick={() => onStructuralEdit((k) => ({ ...k, questions: moveWithinCategory(k.questions, question.id, "up") }))}
-            className="rounded-md border border-neutral-300 px-2 py-1 text-xs disabled:opacity-30 dark:border-neutral-700"
+            className="btn btn-ghost btn-sm border border-border px-2"
           >
-            ↑
+            <IconChevronUp className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             aria-label="Move down"
             disabled={!canMoveDown}
             onClick={() => onStructuralEdit((k) => ({ ...k, questions: moveWithinCategory(k.questions, question.id, "down") }))}
-            className="rounded-md border border-neutral-300 px-2 py-1 text-xs disabled:opacity-30 dark:border-neutral-700"
+            className="btn btn-ghost btn-sm border border-border px-2"
           >
-            ↓
+            <IconChevronDown className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             aria-label="Delete question"
             onClick={() => onStructuralEdit((k) => ({ ...k, questions: k.questions.filter((q) => q.id !== question.id) }))}
-            className="rounded-md border border-neutral-300 px-2 py-1 text-xs hover:bg-red-50 hover:text-red-700 dark:border-neutral-700 dark:hover:bg-red-950"
+            className="btn btn-danger-ghost btn-sm px-2"
           >
-            Delete
+            <IconTrash className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Prompt
+      <label className="flex flex-col gap-1.5">
+        <span className="label">Prompt</span>
         <textarea
           rows={2}
           value={question.prompt}
           onChange={(e) => updateQuestion({ prompt: e.target.value })}
-          className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          className="field px-3 py-2 text-sm leading-relaxed"
         />
       </label>
-      <label className="mt-2 flex flex-col gap-1 text-sm">
-        Answer outline
+      <label className="mt-3 flex flex-col gap-1.5">
+        <span className="label">Answer outline</span>
         <textarea
           rows={3}
           value={question.answer_outline}
           onChange={(e) => updateQuestion({ answer_outline: e.target.value })}
-          className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          className="field px-3 py-2 text-sm leading-relaxed"
         />
       </label>
     </li>
@@ -179,20 +187,24 @@ export function QuestionsBoard({
   }
 
   return (
-    <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Question bank</h2>
+    <section className="card p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="kicker mb-1">Question bank</p>
+          <h2 className="font-semibold tracking-tight">{kit.questions.length} total questions</h2>
+        </div>
         <button
           type="button"
           onClick={() => onRegenerate(active)}
           disabled={regeneratingSection === active}
-          className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          className="btn btn-secondary btn-sm"
         >
+          <IconRefresh className={`h-3.5 w-3.5 ${regeneratingSection === active ? "animate-spin" : ""}`} />
           {regeneratingSection === active ? "Regenerating…" : `Regenerate ${active}`}
         </button>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-2 text-sm" role="tablist" aria-label="Question category">
+      <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-background p-1 text-sm" role="tablist" aria-label="Question category">
         {CATEGORIES.map((c) => {
           const count = kit.questions.filter((q) => q.category === c.key).length;
           return (
@@ -202,22 +214,22 @@ export function QuestionsBoard({
               role="tab"
               aria-selected={active === c.key}
               onClick={() => setActive(c.key)}
-              className={`rounded-md px-3 py-1.5 ${
-                active === c.key
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                  : "border border-neutral-300 dark:border-neutral-700"
+              className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
+                active === c.key ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground"
               }`}
             >
-              {c.label} ({count})
+              {c.label} <span className="text-xs opacity-70">({count})</span>
             </button>
           );
         })}
       </div>
 
       {inCategory.length === 0 ? (
-        <p className="mb-3 text-sm text-neutral-500">No questions in this category yet.</p>
+        <p className="mb-4 rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+          No questions in this category yet.
+        </p>
       ) : (
-        <ul className="mb-3 flex flex-col gap-2">
+        <ul className="mb-4 flex flex-col gap-3">
           {inCategory.map((q, i) => (
             <QuestionCard
               key={q.id}
@@ -232,12 +244,9 @@ export function QuestionsBoard({
         </ul>
       )}
 
-      <button
-        type="button"
-        onClick={addQuestion}
-        className="rounded-md border border-dashed border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
-      >
-        + Add question
+      <button type="button" onClick={addQuestion} className="btn btn-secondary w-full border-dashed">
+        <IconPlus className="h-4 w-4" />
+        Add question
       </button>
     </section>
   );

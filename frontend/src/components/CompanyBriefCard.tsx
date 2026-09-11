@@ -1,4 +1,5 @@
 import type { Kit } from "@/lib/types";
+import { IconRefresh } from "./icons";
 
 export function CompanyBriefCard({
   kit,
@@ -12,24 +13,20 @@ export function CompanyBriefCard({
   regenerating: boolean;
 }) {
   return (
-    <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold">
-          Company brief
-          {kit.source.company ? <span className="text-neutral-500"> · {kit.source.company}</span> : null}
-        </h2>
-        <button
-          type="button"
-          onClick={onRegenerate}
-          disabled={regenerating}
-          className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-        >
+    <section className="card p-5 sm:p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="kicker mb-1">Company brief</p>
+          <h2 className="font-semibold tracking-tight">{kit.source.company || "Company"}</h2>
+        </div>
+        <button type="button" onClick={onRegenerate} disabled={regenerating} className="btn btn-secondary btn-sm">
+          <IconRefresh className={`h-3.5 w-3.5 ${regenerating ? "animate-spin" : ""}`} />
           {regenerating ? "Regenerating…" : "Regenerate"}
         </button>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Summary
+      <label className="flex flex-col gap-1.5">
+        <span className="label">Summary</span>
         <textarea
           rows={3}
           value={kit.company_brief.summary}
@@ -39,12 +36,12 @@ export function CompanyBriefCard({
               company_brief: { ...k.company_brief, summary: e.target.value },
             }))
           }
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          className="field px-3 py-2 text-sm leading-relaxed"
         />
       </label>
 
-      <label className="mt-3 flex flex-col gap-1 text-sm">
-        What they do
+      <label className="mt-4 flex flex-col gap-1.5">
+        <span className="label">What they do</span>
         <textarea
           rows={3}
           value={kit.company_brief.what_they_do}
@@ -54,17 +51,19 @@ export function CompanyBriefCard({
               company_brief: { ...k.company_brief, what_they_do: e.target.value },
             }))
           }
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          className="field px-3 py-2 text-sm leading-relaxed"
         />
       </label>
 
       {kit.company_brief.sources.length > 0 && (
-        <details className="mt-3 text-xs text-neutral-500">
-          <summary className="cursor-pointer">{kit.company_brief.sources.length} source(s)</summary>
-          <ul className="mt-1 list-disc pl-5">
+        <details className="mt-4 text-xs text-muted">
+          <summary className="cursor-pointer font-medium hover:text-foreground">
+            {kit.company_brief.sources.length} source(s)
+          </summary>
+          <ul className="mt-2 flex flex-col gap-1 border-l border-border pl-3">
             {kit.company_brief.sources.map((s) => (
               <li key={s} className="truncate">
-                <a href={s} target="_blank" rel="noreferrer" className="underline">
+                <a href={s} target="_blank" rel="noreferrer" className="hover:text-accent hover:underline">
                   {s}
                 </a>
               </li>

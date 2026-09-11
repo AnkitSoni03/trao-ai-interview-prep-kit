@@ -1,5 +1,6 @@
 import type { Kit } from "@/lib/types";
 import { checkCoverage } from "@/lib/checkCoverage";
+import { IconAlert, IconCheck } from "./icons";
 
 export function CoverageBanner({ kit }: { kit: Kit }) {
   // Computed live from the current question set, not the (possibly stale, if the user has
@@ -7,7 +8,10 @@ export function CoverageBanner({ kit }: { kit: Kit }) {
   const uncovered = checkCoverage(kit.role.requirements, kit.questions);
   if (uncovered.length === 0) {
     return (
-      <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800 dark:bg-green-950 dark:text-green-300">
+      <div className="flex items-center gap-2.5 rounded-xl bg-success-soft px-4 py-3 text-sm text-success">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-white">
+          <IconCheck className="h-3 w-3" />
+        </span>
         Every requirement has at least one question covering it ({kit.coverage.passes} pass
         {kit.coverage.passes === 1 ? "" : "es"}).
       </div>
@@ -16,13 +20,16 @@ export function CoverageBanner({ kit }: { kit: Kit }) {
 
   const byId = new Map(kit.role.requirements.map((r) => [r.id, r]));
   return (
-    <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-300">
-      <p className="font-medium">{uncovered.length} requirement(s) still have no question:</p>
-      <ul className="mt-1 list-disc pl-5">
-        {uncovered.map((id) => (
-          <li key={id}>{byId.get(id)?.text ?? id}</li>
-        ))}
-      </ul>
+    <div className="flex gap-2.5 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">
+      <IconAlert className="mt-0.5 h-4 w-4 shrink-0" />
+      <div>
+        <p className="font-medium">{uncovered.length} requirement(s) still have no question:</p>
+        <ul className="mt-1 list-disc pl-4 opacity-90">
+          {uncovered.map((id) => (
+            <li key={id}>{byId.get(id)?.text ?? id}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
