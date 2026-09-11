@@ -4,6 +4,15 @@ dist/
 out/
 build/
 
+# Not committed deliberately: Tailwind v4's lightningcss (and a few other deps) ship
+# platform-specific native binaries as optionalDependencies. A lockfile generated on one OS
+# only resolves that OS's binary, so `npm install` on a different platform (dev on Windows,
+# deployed on Vercel's Linux) fails to find the right one. Letting each environment generate
+# its own lockfile via a plain `npm install` sidesteps that entirely.
+package-lock.json
+frontend/package-lock.json
+backend/package-lock.json
+
 .env
 .env.local
 *.env
