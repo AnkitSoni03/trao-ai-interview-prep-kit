@@ -73,6 +73,19 @@ function scoreLink(href: string, linkText: string): number {
   return score;
 }
 
+/** Strips trailing slash/fragment so the same page reached via two different link hrefs
+ * (e.g. "/careers" vs "/careers/", or with a "#section" anchor) is only ever queued/fetched once. */
+function normalizeUrl(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl);
+    u.hash = "";
+    if (u.pathname.length > 1 && u.pathname.endsWith("/")) u.pathname = u.pathname.slice(0, -1);
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 function isSameSite(candidate: string, rootOrigin: string): boolean {
   try {
     const candidateHost = new URL(candidate).hostname.replace(/^www\./, "");
@@ -112,8 +125,9 @@ export async function crawlCompanySite(companyUrl: string): Promise<CrawlResult>
   while (frontier.length > 0 && pages.length < budget) {
     frontier.sort((a, b) => b.score - a.score);
     const next = frontier.shift()!;
-    if (visited.has(next.url)) continue;
-    visited.add(next.url);
+    const normalizedNext = normalizeUrl(next.url);
+    if (visited.has(normalizedNext)) continue;
+    visited.add(normalizedNext);
 
     if (next.depth > 0) {
       const allowed = await isCrawlAllowed(next.url).catch(() => true);
@@ -130,11 +144,15 @@ export async function crawlCompanySite(companyUrl: string): Promise<CrawlResult>
       continue;
     }
 
+    // The final URL (after redirects) might already have been reached via a different href -
+    // mark it visited too so later frontier entries pointing at the same target are skipped.
+    visited.add(normalizeUrl(result.page.finalUrl));
     pages.push(result.page);
 
     if (next.depth < 2) {
       for (const link of result.page.links) {
-        if (visited.has(link.href)) continue;
+        const normalizedLink = normalizeUrl(link.href);
+        if (visited.has(normalizedLink)) continue;
         if (SKIP_EXTENSIONS.test(link.href)) continue;
         if (!isSameSite(link.href, rootOrigin)) continue;
         frontier.push({ url: link.href, score: scoreLink(link.href, link.text), depth: next.depth + 1 });

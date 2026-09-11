@@ -19,10 +19,16 @@ const KIND_TO_CATEGORY: Record<RequirementKind, QuestionCategory> = {
   domain: "company-fit",
 };
 
+/**
+ * Companies often serve their careers/about content from a subdomain (about.gitlab.com,
+ * jobs.stripe.com) - the registrable-domain label (second-from-last, ignoring the TLD) is a
+ * much better guess at the company name than the leftmost label, which would read "About"
+ * or "Jobs" instead of the actual company.
+ */
 function deriveCompanyName(companyUrl: string): string {
   try {
-    const host = new URL(companyUrl).hostname.replace(/^www\./, "");
-    const [name] = host.split(".");
+    const labels = new URL(companyUrl).hostname.split(".");
+    const name = labels.length >= 2 ? labels[labels.length - 2] : labels[0];
     return name.charAt(0).toUpperCase() + name.slice(1);
   } catch {
     return companyUrl;
@@ -40,45 +46,58 @@ function needsSystemDesign(seniority: string, hiringNotes: string): boolean {
   return senior || mentionsSystemDesign;
 }
 
+function groupByKind(requirements: Requirement[]): Map<RequirementKind, Requirement[]> {
+  const grouped = new Map<RequirementKind, Requirement[]>();
+  for (const req of requirements) {
+    grouped.set(req.kind, [...(grouped.get(req.kind) ?? []), req]);
+  }
+  return grouped;
+}
+
+/** Reassigns sequential, final `q1..qN` ids. Safe to do once at the very end: nothing besides
+ * checkCoverage/splitUncoveredByPriority reads a question's own id before that point, and
+ * those only look at requirement_ids. */
+function renumberQuestions(questions: Question[]): Question[] {
+  return questions.map((q, i) => ({ ...q, id: `q${i + 1}` }));
+}
+
+/**
+ * A single Gemini call on this network regularly takes 30-100s+ (measured - see
+ * pipeline/llm/rateLimiter.ts), so the categories are generated concurrently (each is an
+ * independent call with its own instructions per Section 3) rather than one after another -
+ * otherwise a handful of categories alone could burn most of the 15-minute batch budget.
+ */
 async function generateQuestionsByKind(
   requirements: Requirement[],
   companyContext: string,
   hiringProcessNotes: string,
 ): Promise<Question[]> {
-  const grouped = new Map<RequirementKind, Requirement[]>();
-  for (const req of requirements) {
-    grouped.set(req.kind, [...(grouped.get(req.kind) ?? []), req]);
-  }
-
-  const questions: Question[] = [];
-  let idOffset = 0;
-
-  for (const [kind, reqs] of grouped.entries()) {
-    const generated = await generateQuestionsForCategory({
+  const grouped = groupByKind(requirements);
+  const tasks = [...grouped.entries()].map(([kind, reqs]) =>
+    generateQuestionsForCategory({
       category: KIND_TO_CATEGORY[kind],
       requirements: reqs,
       companyContext,
       hiringProcessNotes,
-      idOffset,
-    });
-    questions.push(...generated);
-    idOffset += generated.length;
-  }
+      idOffset: 0,
+    }),
+  );
 
   const technicalReqs = grouped.get("technical") ?? [];
-  const seniorityHint = requirements.length > 0 ? "" : "";
-  if (technicalReqs.length > 0 && needsSystemDesign(seniorityHint, hiringProcessNotes)) {
-    const generated = await generateQuestionsForCategory({
-      category: "system-design",
-      requirements: technicalReqs,
-      companyContext,
-      hiringProcessNotes,
-      idOffset,
-    });
-    questions.push(...generated);
+  if (technicalReqs.length > 0 && needsSystemDesign("", hiringProcessNotes)) {
+    tasks.push(
+      generateQuestionsForCategory({
+        category: "system-design",
+        requirements: technicalReqs,
+        companyContext,
+        hiringProcessNotes,
+        idOffset: 0,
+      }),
+    );
   }
 
-  return questions;
+  const results = await Promise.all(tasks);
+  return results.flat();
 }
 
 function toBatchError(err: unknown): BatchError {
@@ -124,48 +143,52 @@ export async function runPipeline(
 
     onProgress({ step: "search_discussion", message: "Looking for public discussion of the interview process" });
     const discussion = await searchInterviewDiscussion(companyName);
-
-    onProgress({ step: "company_brief", message: "Summarising the company" });
-    const companyBrief = await synthesizeCompanyBrief({
-      companyName,
-      companyUrl: input.company_url,
-      pages: crawl.pages,
-    });
-
     const hiringProcessNotes = discussion.snippets.map((s) => `${s.title}: ${s.snippet}`).join("\n") || discussion.note || "";
-    const companyContext = companyBrief.summary;
 
-    onProgress({ step: "generate_questions", message: "Generating question categories" });
-    let questions = await generateQuestionsByKind(role.requirements, companyContext, hiringProcessNotes);
+    // A raw excerpt of the crawled pages, used as question-generation context so that step
+    // doesn't have to wait on the polished company_brief LLM call - the two run concurrently.
+    const rawCompanyContext =
+      crawl.pages
+        .slice(0, 3)
+        .map((p) => `${p.title}: ${p.text.slice(0, 500)}`)
+        .join("\n") || "(no information retrieved about this company)";
+
+    onProgress({ step: "company_brief", message: "Summarising the company and generating question categories" });
+    const [companyBrief, initialQuestions] = await Promise.all([
+      synthesizeCompanyBrief({ companyName, companyUrl: input.company_url, pages: crawl.pages }),
+      generateQuestionsByKind(role.requirements, rawCompanyContext, hiringProcessNotes),
+    ]);
+
+    const companyContext = companyBrief.summary;
+    const questionBatches = [initialQuestions];
 
     let passes = 1;
-    let uncovered = checkCoverage(role.requirements, questions);
+    let uncovered = checkCoverage(role.requirements, initialQuestions);
 
     while (uncovered.length > 0 && passes <= MAX_GAP_FILL_PASSES) {
       onProgress({ step: "coverage_gap_fill", message: `Pass ${passes + 1}: filling ${uncovered.length} coverage gap(s)` });
       const { mustHave, niceToHave } = splitUncoveredByPriority(role.requirements, uncovered);
       const toFill = [...mustHave, ...niceToHave];
+      const grouped = groupByKind(toFill);
 
-      const grouped = new Map<RequirementKind, Requirement[]>();
-      for (const req of toFill) grouped.set(req.kind, [...(grouped.get(req.kind) ?? []), req]);
-
-      let idOffset = questions.length;
-      for (const [kind, reqs] of grouped.entries()) {
-        const filled = await generateQuestionsForCategory({
+      const fillTasks = [...grouped.entries()].map(([kind, reqs]) =>
+        generateQuestionsForCategory({
           category: KIND_TO_CATEGORY[kind],
           requirements: reqs,
           companyContext,
           hiringProcessNotes,
-          idOffset,
-        });
-        questions.push(...filled);
-        idOffset += filled.length;
-      }
+          idOffset: 0,
+        }),
+      );
+      const filledBatches = await Promise.all(fillTasks);
+      questionBatches.push(...filledBatches);
 
-      uncovered = checkCoverage(role.requirements, questions);
+      const coveredSoFar = questionBatches.flat();
+      uncovered = checkCoverage(role.requirements, coveredSoFar);
       passes += 1;
     }
 
+    const questions = renumberQuestions(questionBatches.flat());
     const flashcards = generateFlashcards(role.requirements, questions);
     const schedule = buildSchedule({ questions, requirements: role.requirements, daysAvailable: input.days });
 

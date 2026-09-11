@@ -2,11 +2,17 @@ import PQueue from "p-queue";
 
 /**
  * Free-tier LLM providers throttle both requests/minute and tokens/minute. We can't see
- * token usage ahead of a call, so the practical defence is: run calls one at a time with a
- * floor delay between them, and retry with exponential backoff whenever the provider says
+ * token usage ahead of a call, so the practical defence is a shared queue capping both
+ * concurrency and requests/minute, with exponential backoff whenever the provider says
  * "slow down" (429) or has a transient failure (5xx / network error).
+ *
+ * A single Gemini call regularly takes 30-100s+ end-to-end on this network (measured, not
+ * our code adding latency), and one kit needs several independent calls (per requirement-kind
+ * question generation, the company brief). Running those fully serialized would blow the
+ * "5 cases in 15 minutes" budget from Section 9, so we allow a few in flight at once rather
+ * than one-at-a-time, while still capping requests/minute conservatively for the free tier.
  */
-const queue = new PQueue({ concurrency: 1, interval: 1100, intervalCap: 1 });
+const queue = new PQueue({ concurrency: 3, interval: 60_000, intervalCap: 12 });
 
 export interface RetryOptions {
   retries?: number;
