@@ -19,3 +19,4 @@ coverage/
 
 # batch entry point outputs (Section 9) - not source, don't commit run artifacts
 /examples/kits.output.json
+software-engineer-assignment.pdf
