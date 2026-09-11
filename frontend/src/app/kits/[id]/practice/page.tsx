@@ -43,8 +43,8 @@ function WeakSpots({ kit }: { kit: Kit }) {
       <ul className="flex flex-col gap-3 text-sm">
         {rows.map(({ req, avg, reviewed, total }) => (
           <li key={req.id}>
-            <div className="mb-1 flex items-center justify-between gap-3">
-              <span className="truncate">{req.text}</span>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+              <span className="min-w-0">{req.text}</span>
               <span className="shrink-0 text-xs text-muted">
                 {avg === null ? "not reviewed" : `${avg.toFixed(1)}/3`} · {reviewed}/{total}
               </span>

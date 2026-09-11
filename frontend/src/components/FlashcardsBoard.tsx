@@ -1,5 +1,6 @@
 import type { Flashcard, Kit } from "@/lib/types";
 import { markEdited, nextId } from "@/lib/kitEdits";
+import { AutoTextarea } from "./AutoTextarea";
 import { IconPlus, IconTrash } from "./icons";
 
 export function FlashcardsBoard({
@@ -52,20 +53,20 @@ export function FlashcardsBoard({
               </div>
               <label className="flex flex-col gap-1.5">
                 <span className="label">Front</span>
-                <textarea
+                <AutoTextarea
                   rows={2}
                   value={f.front}
                   onChange={(e) => updateCard(f.id, { front: e.target.value })}
-                  className="field px-2.5 py-2 text-sm"
+                  className="px-2.5 py-2 text-sm"
                 />
               </label>
               <label className="mt-3 flex flex-col gap-1.5">
                 <span className="label">Back</span>
-                <textarea
+                <AutoTextarea
                   rows={3}
                   value={f.back}
                   onChange={(e) => updateCard(f.id, { back: e.target.value })}
-                  className="field px-2.5 py-2 text-sm"
+                  className="px-2.5 py-2 text-sm"
                 />
               </label>
             </li>

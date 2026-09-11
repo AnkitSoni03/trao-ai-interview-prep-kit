@@ -1,4 +1,5 @@
 import type { Kit } from "@/lib/types";
+import { AutoTextarea } from "./AutoTextarea";
 import { IconRefresh } from "./icons";
 
 export function CompanyBriefCard({
@@ -27,7 +28,7 @@ export function CompanyBriefCard({
 
       <label className="flex flex-col gap-1.5">
         <span className="label">Summary</span>
-        <textarea
+        <AutoTextarea
           rows={3}
           value={kit.company_brief.summary}
           onChange={(e) =>
@@ -36,13 +37,13 @@ export function CompanyBriefCard({
               company_brief: { ...k.company_brief, summary: e.target.value },
             }))
           }
-          className="field px-3 py-2 text-sm leading-relaxed"
+          className="px-3 py-2 text-sm leading-relaxed"
         />
       </label>
 
       <label className="mt-4 flex flex-col gap-1.5">
         <span className="label">What they do</span>
-        <textarea
+        <AutoTextarea
           rows={3}
           value={kit.company_brief.what_they_do}
           onChange={(e) =>
@@ -51,7 +52,7 @@ export function CompanyBriefCard({
               company_brief: { ...k.company_brief, what_they_do: e.target.value },
             }))
           }
-          className="field px-3 py-2 text-sm leading-relaxed"
+          className="px-3 py-2 text-sm leading-relaxed"
         />
       </label>
 
@@ -62,7 +63,7 @@ export function CompanyBriefCard({
           </summary>
           <ul className="mt-2 flex flex-col gap-1 border-l border-border pl-3">
             {kit.company_brief.sources.map((s) => (
-              <li key={s} className="truncate">
+              <li key={s} className="break-all">
                 <a href={s} target="_blank" rel="noreferrer" className="hover:text-accent hover:underline">
                   {s}
                 </a>

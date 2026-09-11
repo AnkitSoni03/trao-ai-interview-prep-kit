@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Kit, Question, QuestionCategory } from "@/lib/types";
 import { markEdited, nextId } from "@/lib/kitEdits";
+import { AutoTextarea } from "./AutoTextarea";
 import { IconChevronDown, IconChevronUp, IconPin, IconPlus, IconRefresh, IconTrash } from "./icons";
 
 const CATEGORIES: { key: QuestionCategory; label: string }[] = [
@@ -89,9 +90,7 @@ function QuestionCard({
             <span className="rounded-full bg-background px-2 py-1 text-xs capitalize text-muted">{question.origin}</span>
           )}
           {requirementText.length > 0 && (
-            <span className="max-w-[16rem] truncate text-xs text-muted" title={requirementText.join(", ")}>
-              covers: {requirementText.join(", ")}
-            </span>
+            <span className="text-xs text-muted">covers: {requirementText.join(", ")}</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -135,20 +134,20 @@ function QuestionCard({
 
       <label className="flex flex-col gap-1.5">
         <span className="label">Prompt</span>
-        <textarea
+        <AutoTextarea
           rows={2}
           value={question.prompt}
           onChange={(e) => updateQuestion({ prompt: e.target.value })}
-          className="field px-3 py-2 text-sm leading-relaxed"
+          className="px-3 py-2 text-sm leading-relaxed"
         />
       </label>
       <label className="mt-3 flex flex-col gap-1.5">
         <span className="label">Answer outline</span>
-        <textarea
+        <AutoTextarea
           rows={3}
           value={question.answer_outline}
           onChange={(e) => updateQuestion({ answer_outline: e.target.value })}
-          className="field px-3 py-2 text-sm leading-relaxed"
+          className="px-3 py-2 text-sm leading-relaxed"
         />
       </label>
     </li>
