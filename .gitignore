@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.next/
+out/
+build/
+
+.env
+.env.local
+*.env
+!.env.example
+
+npm-debug.log*
+*.log
+
+.DS_Store
+Thumbs.db
+
+coverage/
+
+# batch entry point outputs (Section 9) - not source, don't commit run artifacts
+/examples/kits.output.json

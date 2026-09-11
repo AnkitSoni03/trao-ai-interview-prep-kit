@@ -1,0 +1,20 @@
+[
+  {
+    "id": "case-01-gitlab",
+    "jd": "Senior Backend Engineer\n\nWe are looking for a Senior Backend Engineer to join our platform team.\n\nRequirements:\n- 5+ years of experience with Ruby on Rails or a comparable backend framework\n- Required: strong understanding of PostgreSQL and query optimisation\n- Experience mentoring junior engineers and leading small projects\n- Bonus points for experience with Kubernetes\n\nYou will design and ship backend services used by millions of developers.",
+    "company_url": "https://about.gitlab.com/",
+    "days": 5
+  },
+  {
+    "id": "case-02-posthog",
+    "jd": "Product Engineer\n\nWe're hiring a Product Engineer to work across our full stack.\n\n- Required: 3+ years with TypeScript and React\n- Required: comfortable owning a feature end-to-end, from design to deploy\n- Nice to have: experience with product analytics tools\n- Strong written communication for an async, remote-first team",
+    "company_url": "https://posthog.com/",
+    "days": 7
+  },
+  {
+    "id": "case-03-thin-jd",
+    "jd": "Backend dev needed. Node.js. Remote.",
+    "company_url": "https://example.com/",
+    "days": 3
+  }
+]
