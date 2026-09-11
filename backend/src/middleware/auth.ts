@@ -18,18 +18,25 @@ declare global {
 
 const SESSION_COOKIE = "trao_session";
 
+// In production the frontend (Vercel) and backend (Render/Railway) are different domains, so
+// the session cookie is cross-site from the browser's point of view - that requires
+// SameSite=None (paired with Secure, which browsers mandate alongside None). Locally both run
+// on localhost (different ports only), which the cookie spec treats as same-site, so Lax works
+// and avoids needing HTTPS in dev.
+const cookieOptions = {
+  httpOnly: true,
+  secure: env.NODE_ENV === "production",
+  sameSite: (env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
 export function issueSessionCookie(res: Response, payload: AuthPayload): void {
   const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] });
-  res.cookie(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie(SESSION_COOKIE, token, cookieOptions);
 }
 
 export function clearSessionCookie(res: Response): void {
-  res.clearCookie(SESSION_COOKIE);
+  res.clearCookie(SESSION_COOKIE, cookieOptions);
 }
 
 /** Rejects a request with no/invalid/expired session. Nothing behind this runs for a signed-out visitor. */

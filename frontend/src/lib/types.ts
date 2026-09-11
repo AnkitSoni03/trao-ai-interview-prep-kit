@@ -1,14 +1,11 @@
-// Kit structure — must match the assessment brief's Appendix A exactly.
-// Field names are load-bearing: the automated grading pass diffs against this shape.
+// Mirrors backend/src/types/kit.ts and batch.ts - kept in sync by hand since the two
+// workspaces don't share a package. See README "Repository layout".
 
 export type RequirementKind = "technical" | "behavioural" | "domain";
 export type RequirementPriority = "must" | "nice";
 export type QuestionCategory = "technical" | "behavioural" | "system-design" | "company-fit";
-
-// Extra bookkeeping we add on top of the required fields (Section 6: builder state).
-// Not part of Appendix A's required fields, but additive extension is explicitly allowed
-// ("You may extend it where that genuinely helps").
 export type ItemOrigin = "generated" | "edited" | "user-added";
+export type Confidence = 1 | 2 | 3;
 
 export interface KitSource {
   company: string;
@@ -16,7 +13,7 @@ export interface KitSource {
   role: string;
   location: string;
   jd_chars: number;
-  researched_at: string; // ISO timestamp
+  researched_at: string;
   pages_used: string[];
 }
 
@@ -27,7 +24,7 @@ export interface CompanyBrief {
 }
 
 export interface Requirement {
-  id: string; // stable within the kit, e.g. "r1"
+  id: string;
   text: string;
   kind: RequirementKind;
   priority: RequirementPriority;
@@ -42,7 +39,7 @@ export interface RoleBreakdown {
 }
 
 export interface Question {
-  id: string; // stable within the kit, e.g. "q1"
+  id: string;
   requirement_ids: string[];
   category: QuestionCategory;
   prompt: string;
@@ -53,7 +50,7 @@ export interface Question {
 }
 
 export interface Flashcard {
-  id: string; // e.g. "f1"
+  id: string;
   front: string;
   back: string;
   requirement_ids: string[];
@@ -65,7 +62,7 @@ export interface ScheduleDay {
   day: number;
   focus: string;
   question_ids: string[];
-  minutes: number; // integer
+  minutes: number;
 }
 
 export interface Schedule {
@@ -78,16 +75,11 @@ export interface Coverage {
   passes: number;
 }
 
-export type Confidence = 1 | 2 | 3; // 1 = low, 3 = high
-
 export interface PracticeRecord {
   confidence: Confidence;
-  reviewedAt: string; // ISO timestamp
+  reviewedAt: string;
 }
 
-// Additive extension (Appendix A explicitly allows extending the structure): per-flashcard
-// practice history, keyed by flashcard id. Not part of the required fields, so it's ignored
-// by validateKit and safe to omit entirely on a freshly generated kit.
 export type PracticeLog = Record<string, PracticeRecord>;
 
 export interface Kit {
@@ -99,4 +91,28 @@ export interface Kit {
   schedule: Schedule;
   coverage: Coverage;
   practice?: PracticeLog;
+}
+
+export type KitStatus = "pending" | "researching" | "generating" | "checking_coverage" | "ready" | "failed";
+
+export interface KitError {
+  code: string | null;
+  message: string | null;
+}
+
+export interface KitRecord {
+  _id: string;
+  userId: string;
+  input: { jd: string; company_url: string; days: number };
+  status: KitStatus;
+  progress: { step: string; message: string; updatedAt: string };
+  kit: Kit | null;
+  error: KitError | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface User {
+  userId: string;
+  email: string;
 }

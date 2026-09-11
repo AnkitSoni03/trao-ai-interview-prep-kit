@@ -8,7 +8,7 @@ import { generateQuestionsForCategory } from "../pipeline/generateQuestions.js";
 import { checkCoverage } from "../pipeline/checkCoverage.js";
 import { buildSchedule } from "../pipeline/buildSchedule.js";
 import { validateKit } from "../pipeline/validateKit.js";
-import type { Kit, QuestionCategory, RequirementKind } from "../types/kit.js";
+import type { Confidence, Kit, QuestionCategory, RequirementKind } from "../types/kit.js";
 import { logger } from "../utils/logger.js";
 
 const KIND_FOR_CATEGORY: Partial<Record<QuestionCategory, RequirementKind>> = {
@@ -107,8 +107,46 @@ export async function saveEditedKit(userId: string, kitId: string, kit: Kit) {
     throw new HttpError(422, "INVALID_KIT", `Edited kit failed validation: ${validation.errors.join("; ")}`);
   }
   record.kit = kit;
+  record.markModified("kit"); // `kit` is a Mixed-typed field - Mongoose can't auto-detect nested changes
   await record.save();
   return record;
+}
+
+/** Re-runs a failed kit's generation from scratch using its original input. */
+export async function retryKit(userId: string, kitId: string) {
+  const record = await getOwnedKit(userId, kitId);
+  if (record.status !== "failed") {
+    throw new HttpError(409, "KIT_NOT_FAILED", "Only a failed kit can be retried");
+  }
+
+  record.status = "pending";
+  record.error = { code: null, message: null };
+  record.progress = { step: "retrying", message: "Retrying generation", updatedAt: new Date() };
+  await record.save();
+
+  // input is `required: true` in the schema, so it always exists on a saved record.
+  const storedInput = record.input!;
+  const input = { jd: storedInput.jd, company_url: storedInput.company_url, days: storedInput.days };
+  void processKitInBackground(record.id, userId, input);
+
+  return record;
+}
+
+/** Records how confident the user felt about one flashcard during a practice session. */
+export async function recordPracticeResult(userId: string, kitId: string, flashcardId: string, confidence: Confidence) {
+  const record = await getOwnedKit(userId, kitId);
+  if (!record.kit) throw new HttpError(409, "KIT_NOT_READY", "Kit has not finished generating yet");
+  const kit = record.kit as Kit;
+
+  if (!kit.flashcards.some((f) => f.id === flashcardId)) {
+    throw new HttpError(404, "FLASHCARD_NOT_FOUND", "No flashcard with that id");
+  }
+
+  kit.practice = { ...(kit.practice ?? {}), [flashcardId]: { confidence, reviewedAt: new Date().toISOString() } };
+  record.kit = kit;
+  record.markModified("kit");
+  await record.save();
+  return kit;
 }
 
 function nextIdOffset(ids: string[], prefix: string): number {
@@ -184,6 +222,7 @@ export async function regenerateSection(
   }
 
   record.kit = kit;
+  record.markModified("kit");
   await record.save();
   return kit;
 }

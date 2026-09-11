@@ -46,8 +46,7 @@ export async function synthesizeCompanyBrief(params: {
     'Schema: { "summary": string, "what_they_do": string }',
   ].join("\n");
 
-  const raw = await generateJson<unknown>({ systemInstruction: SYSTEM_INSTRUCTION, prompt });
-  const parsed = llmShape.parse(raw);
+  const parsed = await generateJson({ systemInstruction: SYSTEM_INSTRUCTION, prompt, schema: llmShape });
 
   return {
     summary: parsed.summary,

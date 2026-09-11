@@ -15,6 +15,11 @@ const regenerateSchema = z.object({
   section: z.enum(["company_brief", "schedule", "technical", "behavioural", "system-design", "company-fit"]),
 });
 
+const practiceSchema = z.object({
+  flashcardId: z.string().min(1),
+  confidence: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+});
+
 function userId(req: Request): string {
   if (!req.user) throw new HttpError(401, "NOT_AUTHENTICATED", "Sign in required");
   return req.user.userId;
@@ -56,5 +61,16 @@ export async function remove(req: Request, res: Response): Promise<void> {
 export async function regenerate(req: Request, res: Response): Promise<void> {
   const { section } = regenerateSchema.parse(req.body);
   const kit = await kitService.regenerateSection(userId(req), req.params.id, section);
+  res.status(200).json({ kit });
+}
+
+export async function retry(req: Request, res: Response): Promise<void> {
+  const record = await kitService.retryKit(userId(req), req.params.id);
+  res.status(202).json({ kit: record });
+}
+
+export async function practice(req: Request, res: Response): Promise<void> {
+  const { flashcardId, confidence } = practiceSchema.parse(req.body);
+  const kit = await kitService.recordPracticeResult(userId(req), req.params.id, flashcardId, confidence);
   res.status(200).json({ kit });
 }

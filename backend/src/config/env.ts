@@ -15,7 +15,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default("7d"),
 
   GEMINI_API_KEY: z.string().optional().default(""),
-  GEMINI_MODEL: z.string().default("gemini-3.6-flash"),
+  GEMINI_MODEL: z.string().default("gemini-flash-lite-latest"),
 
   TAVILY_API_KEY: z.string().optional().default(""),
 

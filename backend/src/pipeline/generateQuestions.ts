@@ -66,8 +66,7 @@ export async function generateQuestionsForCategory(params: {
     `{ "questions": [ { "prompt": string, "answer_outline": string, "difficulty": 1|2|3, "requirement_id": string|null } ] }`,
   ].join("\n");
 
-  const raw = await generateJson<unknown>({ systemInstruction: CATEGORY_INSTRUCTIONS[category], prompt });
-  const parsed = llmShape.parse(raw);
+  const parsed = await generateJson({ systemInstruction: CATEGORY_INSTRUCTIONS[category], prompt, schema: llmShape });
 
   const validIds = new Set(requirements.map((r) => r.id));
 

@@ -45,8 +45,7 @@ export async function extractRequirements(jd: string): Promise<RoleBreakdown> {
 }`,
   ].join("\n");
 
-  const raw = await generateJson<unknown>({ systemInstruction: SYSTEM_INSTRUCTION, prompt });
-  const parsed = llmShape.parse(raw);
+  const parsed = await generateJson({ systemInstruction: SYSTEM_INSTRUCTION, prompt, schema: llmShape });
 
   const requirements: Requirement[] = parsed.requirements.map((r, i) => ({
     id: `r${i + 1}`,

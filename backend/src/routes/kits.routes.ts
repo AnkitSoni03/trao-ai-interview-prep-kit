@@ -14,3 +14,5 @@ kitsRouter.get("/:id", asyncHandler(kits.getOne));
 kitsRouter.patch("/:id", asyncHandler(kits.update));
 kitsRouter.delete("/:id", asyncHandler(kits.remove));
 kitsRouter.post("/:id/regenerate", asyncHandler(kits.regenerate));
+kitsRouter.post("/:id/retry", asyncHandler(kits.retry));
+kitsRouter.post("/:id/practice", asyncHandler(kits.practice));
